@@ -1,0 +1,86 @@
+services:
+  webapi:
+    image: ${DOCKER_REGISTRY-}webapi:dev
+    build:
+      context: .
+      dockerfile: src/WebApi/Dockerfile
+    container_name: webapi
+    restart: unless-stopped
+    ports:
+      - 44320:8080
+      - 44321:8081
+    environment:
+      PG_HOST: ${PG_HOST:-postgres}
+      PG_PORT: ${PG_PORT:-5432}
+      PG_DATABASE: ${PG_DATABASE:-webapi}
+      PG_USERNAME: ${PG_USERNAME:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-postgres}
+      PG_RUN_MIGRATIONS_ON_STARTUP: ${PG_RUN_MIGRATIONS_ON_STARTUP:-true}
+      Jwt__SigningKey: ${Jwt__SigningKey:?set Jwt__SigningKey in .env}
+      Jwt__Issuer: ${Jwt__Issuer:-webapi}
+      Jwt__Audience: ${Jwt__Audience:-webapi}
+      Auth__SeedAdmin__Email: ${Auth__SeedAdmin__Email:-}
+      Auth__SeedAdmin__Password: ${Auth__SeedAdmin__Password:-}
+      RabbitMq__Enabled: ${RabbitMq__Enabled:-true}
+      RabbitMq__Host: ${RabbitMq__Host:-rabbitmq}
+      RabbitMq__Port: ${RabbitMq__Port:-5672}
+      RabbitMq__Username: ${RabbitMq__Username:-guest}
+      RabbitMq__Password: ${RabbitMq__Password:-guest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - default
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: webapi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PG_DATABASE:-webapi}
+      POSTGRES_USER: ${PG_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-postgres}
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # -d/-U are required, otherwise pg_isready checks the wrong database and the
+      # container reports healthy before the application database exists.
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USERNAME:-postgres} -d ${PG_DATABASE:-webapi}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - default
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: webapi-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RabbitMq__Username:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RabbitMq__Password:-guest}
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - default
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+
+networks:
+  default:
