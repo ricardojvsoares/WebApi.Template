@@ -1,12 +1,10 @@
 using System.Text;
 using Application;
 using Application.Abstractions.Authentication;
-using Application.Todos.Events;
 using Asp.Versioning;
 using Carter;
 using Infrastructure;
 using Infrastructure.Authentication;
-using Infrastructure.Messaging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -18,7 +16,6 @@ using WebApi.Middlewares;
 using WebApi.OpenApi;
 using Wolverine;
 using Wolverine.FluentValidation;
-using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,10 +81,6 @@ builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHand
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
-var rabbitMqOptions = builder.Configuration
-    .GetSection(RabbitMqOptions.SectionName)
-    .Get<RabbitMqOptions>() ?? new RabbitMqOptions();
-
 builder.Host.UseWolverine(options =>
 {
     options.Discovery.IncludeAssembly(Application.AssemblyReference.Assembly);
@@ -96,33 +89,6 @@ builder.Host.UseWolverine(options =>
     // ExplicitRegistration because AddApplication already registers them from the
     // assembly; the default would scan and register a second copy of each.
     options.UseFluentValidation(RegistrationBehavior.ExplicitRegistration);
-
-    // Integration events travel through the broker rather than being handled in the same
-    // process that published them. Left on, conventional local routing would also invoke
-    // the consumer inline and every event would be handled twice.
-    options.Policies.DisableConventionalLocalRouting();
-
-    if (rabbitMqOptions.Enabled)
-    {
-        options
-            .UseRabbitMq(factory =>
-            {
-                factory.HostName = rabbitMqOptions.Host;
-                factory.Port = rabbitMqOptions.Port;
-                factory.UserName = rabbitMqOptions.Username;
-                factory.Password = rabbitMqOptions.Password;
-                factory.VirtualHost = rabbitMqOptions.VirtualHost;
-            })
-            .AutoProvision();
-
-        options
-            .PublishMessage<TodoCreatedEvent>()
-            .ToRabbitExchange(
-                rabbitMqOptions.TodosExchange,
-                exchange => exchange.BindQueue(rabbitMqOptions.TodosQueue, "todo-created"));
-
-        options.ListenToRabbitQueue(rabbitMqOptions.TodosQueue);
-    }
 });
 
 builder.Services

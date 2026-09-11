@@ -10,7 +10,7 @@ namespace Application.Authentication.Commands.Register;
 
 public static class RegisterCommandHandler
 {
-    public static async Task<ErrorOr<AuthenticationResponse>> HandleAsync(
+    public static async Task<ErrorOr<RegisterResponse>> HandleAsync(
         RegisterCommand command,
         ILogger logger,
         IUserRepository userRepository,
@@ -30,12 +30,19 @@ public static class RegisterCommandHandler
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+            var email = command.Email.Trim();
 
-            var user = User.Create(
-                command.Email.Trim(),
-                passwordHasher.Hash(command.Password),
-                command.DisplayName.Trim(),
-                nowUtc);
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                EmailNormalized = User.NormalizeEmail(email),
+                PasswordHash = passwordHasher.Hash(command.Password),
+                DisplayName = command.DisplayName.Trim(),
+                IsActive = true,
+                CreatedAtUtc = nowUtc,
+                UpdatedAtUtc = nowUtc
+            };
 
             await userRepository.AddAsync(
                 user,
@@ -58,7 +65,7 @@ public static class RegisterCommandHandler
                 defaultRole.Id,
                 cancellationToken);
 
-            return await TokenIssuer.IssueAsync(
+            var tokens = await TokenIssuer.IssueAsync(
                 user,
                 userRepository,
                 refreshTokenRepository,
@@ -66,6 +73,11 @@ public static class RegisterCommandHandler
                 refreshTokenGenerator,
                 nowUtc,
                 cancellationToken);
+
+            return new RegisterResponse(
+                tokens.AccessToken,
+                tokens.AccessTokenExpiresAtUtc,
+                tokens.RefreshToken);
         }
         catch (Exception ex)
         {

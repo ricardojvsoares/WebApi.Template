@@ -1,4 +1,3 @@
-using Application.Users;
 using Application.Users.Commands.CreateUser;
 using Domain.Authorization;
 using ErrorOr;
@@ -19,7 +18,7 @@ internal sealed class CreateUser
             .WithName("CreateUser")
             .WithSummary("Create user")
             .RequirePermission(UserPermissions.Create)
-            .Produces<UserResponse>(StatusCodes.Status201Created)
+            .Produces<CreateUserResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesValidationProblem();
     }
@@ -29,7 +28,7 @@ internal sealed class CreateUser
         IMessageBus bus,
         CancellationToken cancellationToken)
     {
-        var result = await bus.InvokeAsync<ErrorOr<UserResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<CreateUserResponse>>(
             command,
             cancellationToken);
 

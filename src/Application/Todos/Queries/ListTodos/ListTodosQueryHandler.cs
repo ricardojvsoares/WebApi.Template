@@ -8,7 +8,7 @@ namespace Application.Todos.Queries.ListTodos;
 
 public static class ListTodosQueryHandler
 {
-    public static async Task<ErrorOr<PagedResponse<TodoResponse>>> HandleAsync(
+    public static async Task<ErrorOr<ListTodosResponse>> HandleAsync(
         ListTodosQuery query,
         ILogger logger,
         ITodoRepository todoRepository,
@@ -34,8 +34,17 @@ public static class ListTodosQueryHandler
                 query.PageSize,
                 cancellationToken);
 
-            return new PagedResponse<TodoResponse>(
-                [.. todos.Select(t => t.ToResponse())],
+            return new ListTodosResponse(
+                [.. todos.Select(todo => new ListTodosItem(
+                    todo.Id,
+                    todo.Title,
+                    todo.Description,
+                    todo.IsCompleted,
+                    todo.DueDateUtc,
+                    todo.CompletedAtUtc,
+                    todo.OwnerUserId,
+                    todo.CreatedAtUtc,
+                    todo.UpdatedAtUtc))],
                 query.Page,
                 query.PageSize,
                 totalCount);

@@ -6,21 +6,7 @@ namespace Domain.Users.Entities;
 /// </summary>
 public sealed class Role
 {
-    private Role() { }
-
-    public Guid Id { get; private set; }
-    public string Name { get; private set; } = string.Empty;
-    public string? Description { get; private set; }
-
-    public static Role Create(
-        string name,
-        string? description)
-    {
-        return new Role
-        {
-            Id = Guid.NewGuid(),
-            Name = name,
-            Description = description
-        };
-    }
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
 }

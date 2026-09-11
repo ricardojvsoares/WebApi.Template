@@ -1,6 +1,6 @@
-namespace Application.Users;
+namespace Application.Users.Commands.UpdateUser;
 
-public sealed record UserResponse(
+public sealed record UpdateUserResponse(
     Guid Id,
     string Email,
     string DisplayName,

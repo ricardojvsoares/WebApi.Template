@@ -1,4 +1,3 @@
-using Application.Authentication;
 using Application.Authentication.Commands.Login;
 using ErrorOr;
 using WebApi.Abstractions;
@@ -18,7 +17,7 @@ internal sealed class Login
             .AllowAnonymous()
             .WithName("Login")
             .WithSummary("Log in")
-            .Produces<AuthenticationResponse>()
+            .Produces<LoginResponse>()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesValidationProblem();
     }
@@ -28,7 +27,7 @@ internal sealed class Login
         IMessageBus bus,
         CancellationToken cancellationToken)
     {
-        var result = await bus.InvokeAsync<ErrorOr<AuthenticationResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<LoginResponse>>(
             command,
             cancellationToken);
 

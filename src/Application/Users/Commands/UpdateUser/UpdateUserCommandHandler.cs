@@ -7,7 +7,7 @@ namespace Application.Users.Commands.UpdateUser;
 
 public static class UpdateUserCommandHandler
 {
-    public static async Task<ErrorOr<UserResponse>> HandleAsync(
+    public static async Task<ErrorOr<UpdateUserResponse>> HandleAsync(
         UpdateUserCommand command,
         ILogger logger,
         IUserRepository userRepository,
@@ -37,10 +37,9 @@ public static class UpdateUserCommandHandler
             var wasActive = user.IsActive;
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            user.UpdateProfile(
-                command.DisplayName.Trim(),
-                command.IsActive,
-                nowUtc);
+            user.DisplayName = command.DisplayName.Trim();
+            user.IsActive = command.IsActive;
+            user.UpdatedAtUtc = nowUtc;
 
             await userRepository.UpdateAsync(
                 user,
@@ -60,7 +59,14 @@ public static class UpdateUserCommandHandler
                 user.Id,
                 cancellationToken);
 
-            return user.ToResponse(roles);
+            return new UpdateUserResponse(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                user.IsActive,
+                roles,
+                user.CreatedAtUtc,
+                user.UpdatedAtUtc);
         }
         catch (Exception ex)
         {

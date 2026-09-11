@@ -7,7 +7,7 @@ namespace Application.Users.Queries.ListUsers;
 
 public static class ListUsersQueryHandler
 {
-    public static async Task<ErrorOr<PagedResponse<UserResponse>>> HandleAsync(
+    public static async Task<ErrorOr<ListUsersResponse>> HandleAsync(
         ListUsersQuery query,
         ILogger logger,
         IUserRepository userRepository,
@@ -23,7 +23,7 @@ public static class ListUsersQueryHandler
                 query.PageSize,
                 cancellationToken);
 
-            List<UserResponse> items = [];
+            List<ListUsersItem> items = [];
 
             foreach (var user in users)
             {
@@ -31,10 +31,17 @@ public static class ListUsersQueryHandler
                     user.Id,
                     cancellationToken);
 
-                items.Add(user.ToResponse(roles));
+                items.Add(new ListUsersItem(
+                    user.Id,
+                    user.Email,
+                    user.DisplayName,
+                    user.IsActive,
+                    roles,
+                    user.CreatedAtUtc,
+                    user.UpdatedAtUtc));
             }
 
-            return new PagedResponse<UserResponse>(
+            return new ListUsersResponse(
                 items,
                 query.Page,
                 query.PageSize,

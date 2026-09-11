@@ -1,4 +1,3 @@
-using Application.Users;
 using Application.Users.Queries.GetUserById;
 using Domain.Authorization;
 using ErrorOr;
@@ -19,7 +18,7 @@ internal sealed class GetUserById
             .WithName("GetUserById")
             .WithSummary("Get user")
             .RequirePermission(UserPermissions.Read)
-            .Produces<UserResponse>()
+            .Produces<GetUserByIdResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
@@ -30,7 +29,7 @@ internal sealed class GetUserById
     {
         GetUserByIdQuery query = new(id);
 
-        var result = await bus.InvokeAsync<ErrorOr<UserResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<GetUserByIdResponse>>(
             query,
             cancellationToken);
 

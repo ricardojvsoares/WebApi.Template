@@ -1,23 +1,20 @@
 using Application.Abstractions.Authentication;
 using Application.Common;
-using Application.Todos.Events;
 using Domain.Todos.Entities;
 using Domain.Todos.Repositories;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
-using Wolverine;
 
 namespace Application.Todos.Commands.CreateTodo;
 
 public static class CreateTodoCommandHandler
 {
-    public static async Task<ErrorOr<TodoResponse>> HandleAsync(
+    public static async Task<ErrorOr<CreateTodoResponse>> HandleAsync(
         CreateTodoCommand command,
         ILogger logger,
         ITodoRepository todoRepository,
         ICurrentUser currentUser,
         TimeProvider timeProvider,
-        IMessageBus bus,
         CancellationToken cancellationToken = default)
     {
         try
@@ -29,24 +26,33 @@ public static class CreateTodoCommandHandler
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            var todo = Todo.Create(
-                command.Title.Trim(),
-                command.Description?.Trim(),
-                UtcDateTimes.Normalize(command.DueDateUtc),
-                ownerUserId,
-                nowUtc);
+            var todo = new Todo
+            {
+                Id = Guid.NewGuid(),
+                Title = command.Title.Trim(),
+                Description = command.Description?.Trim(),
+                DueDateUtc = UtcDateTimes.Normalize(command.DueDateUtc),
+                OwnerUserId = ownerUserId,
+                IsCompleted = false,
+                CompletedAtUtc = null,
+                CreatedAtUtc = nowUtc,
+                UpdatedAtUtc = nowUtc
+            };
 
             await todoRepository.AddAsync(
                 todo,
                 cancellationToken);
 
-            await bus.PublishAsync(new TodoCreatedEvent(
+            return new CreateTodoResponse(
                 todo.Id,
                 todo.Title,
+                todo.Description,
+                todo.IsCompleted,
+                todo.DueDateUtc,
+                todo.CompletedAtUtc,
                 todo.OwnerUserId,
-                todo.CreatedAtUtc));
-
-            return todo.ToResponse();
+                todo.CreatedAtUtc,
+                todo.UpdatedAtUtc);
         }
         catch (Exception ex)
         {

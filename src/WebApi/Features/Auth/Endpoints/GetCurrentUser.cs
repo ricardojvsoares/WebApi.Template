@@ -1,4 +1,3 @@
-using Application.Authentication;
 using Application.Authentication.Queries.GetCurrentUser;
 using ErrorOr;
 using WebApi.Abstractions;
@@ -18,7 +17,7 @@ internal sealed class GetCurrentUser
             .RequireAuthorization()
             .WithName("GetCurrentUser")
             .WithSummary("Current user")
-            .Produces<CurrentUserResponse>()
+            .Produces<GetCurrentUserResponse>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 
@@ -26,7 +25,7 @@ internal sealed class GetCurrentUser
         IMessageBus bus,
         CancellationToken cancellationToken)
     {
-        var result = await bus.InvokeAsync<ErrorOr<CurrentUserResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<GetCurrentUserResponse>>(
             new GetCurrentUserQuery(),
             cancellationToken);
 

@@ -1,4 +1,3 @@
-using Application.Authentication;
 using Application.Authentication.Commands.RefreshAccessToken;
 using ErrorOr;
 using WebApi.Abstractions;
@@ -22,7 +21,7 @@ internal sealed class RefreshToken
             .AllowAnonymous()
             .WithName("RefreshToken")
             .WithSummary("Refresh tokens")
-            .Produces<AuthenticationResponse>()
+            .Produces<RefreshAccessTokenResponse>()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesValidationProblem();
     }
@@ -32,7 +31,7 @@ internal sealed class RefreshToken
         IMessageBus bus,
         CancellationToken cancellationToken)
     {
-        var result = await bus.InvokeAsync<ErrorOr<AuthenticationResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<RefreshAccessTokenResponse>>(
             command,
             cancellationToken);
 

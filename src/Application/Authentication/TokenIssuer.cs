@@ -1,4 +1,5 @@
 using Application.Abstractions.Authentication;
+using Application.Abstractions.Security;
 using Domain.Users.Entities;
 using Domain.Users.Repositories;
 
@@ -9,7 +10,7 @@ namespace Application.Authentication;
 /// </summary>
 internal static class TokenIssuer
 {
-    public static async Task<AuthenticationResponse> IssueAsync(
+    public static async Task<TokenIssueResult> IssueAsync(
         User user,
         IUserRepository userRepository,
         IRefreshTokenRepository refreshTokenRepository,
@@ -34,14 +35,19 @@ internal static class TokenIssuer
         var refreshToken = refreshTokenGenerator.Create();
 
         await refreshTokenRepository.AddAsync(
-            RefreshToken.Create(
-                user.Id,
-                refreshTokenGenerator.Hash(refreshToken),
-                nowUtc.Add(refreshTokenGenerator.Lifetime),
-                nowUtc),
+            new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                TokenHash = refreshTokenGenerator.Hash(refreshToken),
+                ExpiresAtUtc = nowUtc.Add(refreshTokenGenerator.Lifetime),
+                RevokedAtUtc = null,
+                ReplacedByTokenHash = null,
+                CreatedAtUtc = nowUtc
+            },
             cancellationToken);
 
-        return new AuthenticationResponse(
+        return new TokenIssueResult(
             accessToken.Token,
             accessToken.ExpiresAtUtc,
             refreshToken);

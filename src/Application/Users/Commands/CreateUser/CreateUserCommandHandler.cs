@@ -8,7 +8,7 @@ namespace Application.Users.Commands.CreateUser;
 
 public static class CreateUserCommandHandler
 {
-    public static async Task<ErrorOr<UserResponse>> HandleAsync(
+    public static async Task<ErrorOr<CreateUserResponse>> HandleAsync(
         CreateUserCommand command,
         ILogger logger,
         IUserRepository userRepository,
@@ -46,12 +46,19 @@ public static class CreateUserCommandHandler
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+            var email = command.Email.Trim();
 
-            var user = User.Create(
-                command.Email.Trim(),
-                passwordHasher.Hash(command.Password),
-                command.DisplayName.Trim(),
-                nowUtc);
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                EmailNormalized = User.NormalizeEmail(email),
+                PasswordHash = passwordHasher.Hash(command.Password),
+                DisplayName = command.DisplayName.Trim(),
+                IsActive = true,
+                CreatedAtUtc = nowUtc,
+                UpdatedAtUtc = nowUtc
+            };
 
             await userRepository.AddAsync(
                 user,
@@ -65,7 +72,14 @@ public static class CreateUserCommandHandler
                     cancellationToken);
             }
 
-            return user.ToResponse([.. roles.Select(r => r.Name)]);
+            return new CreateUserResponse(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                user.IsActive,
+                [.. roles.Select(r => r.Name)],
+                user.CreatedAtUtc,
+                user.UpdatedAtUtc);
         }
         catch (Exception ex)
         {

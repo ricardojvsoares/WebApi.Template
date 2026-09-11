@@ -1,5 +1,4 @@
 using Application.Common;
-using Application.Todos;
 using Application.Todos.Queries.ListTodos;
 using Domain.Authorization;
 using ErrorOr;
@@ -21,7 +20,7 @@ internal sealed class ListTodos
             .WithName("ListTodos")
             .WithSummary("List todos")
             .RequirePermission(TodoPermissions.Read)
-            .Produces<PagedResponse<TodoResponse>>()
+            .Produces<ListTodosResponse>()
             .ProducesValidationProblem();
     }
 
@@ -37,7 +36,7 @@ internal sealed class ListTodos
             pageSize,
             isCompleted);
 
-        var result = await bus.InvokeAsync<ErrorOr<PagedResponse<TodoResponse>>>(
+        var result = await bus.InvokeAsync<ErrorOr<ListTodosResponse>>(
             query,
             cancellationToken);
 

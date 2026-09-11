@@ -1,4 +1,3 @@
-using Application.Todos;
 using Application.Todos.Queries.GetTodoById;
 using Domain.Authorization;
 using ErrorOr;
@@ -19,7 +18,7 @@ internal sealed class GetTodoById
             .WithName("GetTodoById")
             .WithSummary("Get todo")
             .RequirePermission(TodoPermissions.Read)
-            .Produces<TodoResponse>()
+            .Produces<GetTodoByIdResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
@@ -30,7 +29,7 @@ internal sealed class GetTodoById
     {
         GetTodoByIdQuery query = new(id);
 
-        var result = await bus.InvokeAsync<ErrorOr<TodoResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<GetTodoByIdResponse>>(
             query,
             cancellationToken);
 

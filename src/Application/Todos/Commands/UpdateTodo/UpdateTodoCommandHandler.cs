@@ -9,7 +9,7 @@ namespace Application.Todos.Commands.UpdateTodo;
 
 public static class UpdateTodoCommandHandler
 {
-    public static async Task<ErrorOr<TodoResponse>> HandleAsync(
+    public static async Task<ErrorOr<UpdateTodoResponse>> HandleAsync(
         UpdateTodoCommand command,
         ILogger logger,
         ITodoRepository todoRepository,
@@ -39,17 +39,25 @@ public static class UpdateTodoCommandHandler
 
             var todo = access.Value;
 
-            todo.Update(
-                command.Title.Trim(),
-                command.Description?.Trim(),
-                UtcDateTimes.Normalize(command.DueDateUtc),
-                timeProvider.GetUtcNow().UtcDateTime);
+            todo.Title = command.Title.Trim();
+            todo.Description = command.Description?.Trim();
+            todo.DueDateUtc = UtcDateTimes.Normalize(command.DueDateUtc);
+            todo.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
 
             await todoRepository.UpdateAsync(
                 todo,
                 cancellationToken);
 
-            return todo.ToResponse();
+            return new UpdateTodoResponse(
+                todo.Id,
+                todo.Title,
+                todo.Description,
+                todo.IsCompleted,
+                todo.DueDateUtc,
+                todo.CompletedAtUtc,
+                todo.OwnerUserId,
+                todo.CreatedAtUtc,
+                todo.UpdatedAtUtc);
         }
         catch (Exception ex)
         {

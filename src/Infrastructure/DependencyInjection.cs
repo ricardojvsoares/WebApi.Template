@@ -1,7 +1,6 @@
 using Application.Abstractions.Authentication;
 using Application.Abstractions.Security;
 using Infrastructure.Authentication;
-using Infrastructure.Messaging;
 using Infrastructure.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,9 +17,6 @@ public static class DependencyInjection
 
         services.Configure<JwtOptions>(
             configuration.GetSection(JwtOptions.SectionName));
-
-        services.Configure<RabbitMqOptions>(
-            configuration.GetSection(RabbitMqOptions.SectionName));
 
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();

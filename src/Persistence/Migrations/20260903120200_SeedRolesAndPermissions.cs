@@ -57,7 +57,7 @@ public sealed class SeedRolesAndPermissions
             });
         }
 
-        foreach (var permission in TodoPermissions.All)
+        foreach (var permission in TodoPermissions.All.Concat(ProductPermissions.All))
         {
             Insert.IntoTable("role_permissions").Row(new
             {

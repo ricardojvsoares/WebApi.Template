@@ -6,7 +6,7 @@ namespace Application.Users.Queries.GetUserById;
 
 public static class GetUserByIdQueryHandler
 {
-    public static async Task<ErrorOr<UserResponse>> HandleAsync(
+    public static async Task<ErrorOr<GetUserByIdResponse>> HandleAsync(
         GetUserByIdQuery query,
         ILogger logger,
         IUserRepository userRepository,
@@ -27,7 +27,14 @@ public static class GetUserByIdQueryHandler
                 user.Id,
                 cancellationToken);
 
-            return user.ToResponse(roles);
+            return new GetUserByIdResponse(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                user.IsActive,
+                roles,
+                user.CreatedAtUtc,
+                user.UpdatedAtUtc);
         }
         catch (Exception ex)
         {

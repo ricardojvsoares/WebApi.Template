@@ -1,6 +1,6 @@
-namespace Application.Todos;
+namespace Application.Todos.Commands.UpdateTodo;
 
-public sealed record TodoResponse(
+public sealed record UpdateTodoResponse(
     Guid Id,
     string Title,
     string? Description,

@@ -1,5 +1,4 @@
 using Application.Common;
-using Application.Users;
 using Application.Users.Queries.ListUsers;
 using Domain.Authorization;
 using ErrorOr;
@@ -21,7 +20,7 @@ internal sealed class ListUsers
             .WithName("ListUsers")
             .WithSummary("List users")
             .RequirePermission(UserPermissions.Read)
-            .Produces<PagedResponse<UserResponse>>()
+            .Produces<ListUsersResponse>()
             .ProducesValidationProblem();
     }
 
@@ -35,7 +34,7 @@ internal sealed class ListUsers
             page,
             pageSize);
 
-        var result = await bus.InvokeAsync<ErrorOr<PagedResponse<UserResponse>>>(
+        var result = await bus.InvokeAsync<ErrorOr<ListUsersResponse>>(
             query,
             cancellationToken);
 

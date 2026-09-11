@@ -8,7 +8,7 @@ namespace Application.Authentication.Commands.Login;
 
 public static class LoginCommandHandler
 {
-    public static async Task<ErrorOr<AuthenticationResponse>> HandleAsync(
+    public static async Task<ErrorOr<LoginResponse>> HandleAsync(
         LoginCommand command,
         ILogger logger,
         IUserRepository userRepository,
@@ -45,7 +45,7 @@ public static class LoginCommandHandler
                 return invalidCredentials;
             }
 
-            return await TokenIssuer.IssueAsync(
+            var tokens = await TokenIssuer.IssueAsync(
                 user,
                 userRepository,
                 refreshTokenRepository,
@@ -53,6 +53,11 @@ public static class LoginCommandHandler
                 refreshTokenGenerator,
                 timeProvider.GetUtcNow().UtcDateTime,
                 cancellationToken);
+
+            return new LoginResponse(
+                tokens.AccessToken,
+                tokens.AccessTokenExpiresAtUtc,
+                tokens.RefreshToken);
         }
         catch (Exception ex)
         {

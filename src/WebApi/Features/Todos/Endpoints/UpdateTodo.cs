@@ -1,4 +1,3 @@
-using Application.Todos;
 using Application.Todos.Commands.UpdateTodo;
 using Domain.Authorization;
 using ErrorOr;
@@ -19,7 +18,7 @@ internal sealed class UpdateTodo
             .WithName("UpdateTodo")
             .WithSummary("Update todo")
             .RequirePermission(TodoPermissions.Update)
-            .Produces<TodoResponse>()
+            .Produces<UpdateTodoResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem();
     }
@@ -36,7 +35,7 @@ internal sealed class UpdateTodo
             body.Description,
             body.DueDateUtc);
 
-        var result = await bus.InvokeAsync<ErrorOr<TodoResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<UpdateTodoResponse>>(
             command,
             cancellationToken);
 

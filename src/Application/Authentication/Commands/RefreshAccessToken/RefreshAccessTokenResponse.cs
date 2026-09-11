@@ -1,6 +1,6 @@
-namespace Application.Authentication;
+namespace Application.Authentication.Commands.RefreshAccessToken;
 
-public sealed record AuthenticationResponse(
+public sealed record RefreshAccessTokenResponse(
     string AccessToken,
     DateTime AccessTokenExpiresAtUtc,
     string RefreshToken,

@@ -8,7 +8,7 @@ namespace Application.Todos.Queries.GetTodoById;
 
 public static class GetTodoByIdQueryHandler
 {
-    public static async Task<ErrorOr<TodoResponse>> HandleAsync(
+    public static async Task<ErrorOr<GetTodoByIdResponse>> HandleAsync(
         GetTodoByIdQuery query,
         ILogger logger,
         ITodoRepository todoRepository,
@@ -35,7 +35,18 @@ public static class GetTodoByIdQueryHandler
                 return access.Errors;
             }
 
-            return access.Value.ToResponse();
+            var todo = access.Value;
+
+            return new GetTodoByIdResponse(
+                todo.Id,
+                todo.Title,
+                todo.Description,
+                todo.IsCompleted,
+                todo.DueDateUtc,
+                todo.CompletedAtUtc,
+                todo.OwnerUserId,
+                todo.CreatedAtUtc,
+                todo.UpdatedAtUtc);
         }
         catch (Exception ex)
         {

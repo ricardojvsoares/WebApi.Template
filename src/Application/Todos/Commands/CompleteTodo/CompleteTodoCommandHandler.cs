@@ -8,7 +8,7 @@ namespace Application.Todos.Commands.CompleteTodo;
 
 public static class CompleteTodoCommandHandler
 {
-    public static async Task<ErrorOr<TodoResponse>> HandleAsync(
+    public static async Task<ErrorOr<CompleteTodoResponse>> HandleAsync(
         CompleteTodoCommand command,
         ILogger logger,
         ITodoRepository todoRepository,
@@ -39,22 +39,43 @@ public static class CompleteTodoCommandHandler
             var todo = access.Value;
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            var changed = command.IsCompleted
-                ? todo.Complete(nowUtc)
-                : todo.Reopen(nowUtc);
-
-            if (!changed)
+            if (command.IsCompleted)
             {
-                return Error.Conflict(description: command.IsCompleted
-                    ? "The todo is already completed."
-                    : "The todo is not completed.");
+                if (todo.IsCompleted)
+                {
+                    return Error.Conflict(description: "The todo is already completed.");
+                }
+
+                todo.IsCompleted = true;
+                todo.CompletedAtUtc = nowUtc;
+                todo.UpdatedAtUtc = nowUtc;
+            }
+            else
+            {
+                if (!todo.IsCompleted)
+                {
+                    return Error.Conflict(description: "The todo is not completed.");
+                }
+
+                todo.IsCompleted = false;
+                todo.CompletedAtUtc = null;
+                todo.UpdatedAtUtc = nowUtc;
             }
 
             await todoRepository.UpdateAsync(
                 todo,
                 cancellationToken);
 
-            return todo.ToResponse();
+            return new CompleteTodoResponse(
+                todo.Id,
+                todo.Title,
+                todo.Description,
+                todo.IsCompleted,
+                todo.DueDateUtc,
+                todo.CompletedAtUtc,
+                todo.OwnerUserId,
+                todo.CreatedAtUtc,
+                todo.UpdatedAtUtc);
         }
         catch (Exception ex)
         {

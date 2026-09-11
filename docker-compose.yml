@@ -21,15 +21,8 @@ services:
       Jwt__Audience: ${Jwt__Audience:-webapi}
       Auth__SeedAdmin__Email: ${Auth__SeedAdmin__Email:-}
       Auth__SeedAdmin__Password: ${Auth__SeedAdmin__Password:-}
-      RabbitMq__Enabled: ${RabbitMq__Enabled:-true}
-      RabbitMq__Host: ${RabbitMq__Host:-rabbitmq}
-      RabbitMq__Port: ${RabbitMq__Port:-5672}
-      RabbitMq__Username: ${RabbitMq__Username:-guest}
-      RabbitMq__Password: ${RabbitMq__Password:-guest}
     depends_on:
       postgres:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
     networks:
       - default
@@ -57,30 +50,8 @@ services:
     networks:
       - default
 
-  rabbitmq:
-    image: rabbitmq:4-management
-    container_name: webapi-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RabbitMq__Username:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RabbitMq__Password:-guest}
-    ports:
-      - 5672:5672
-      - 15672:15672
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
-    networks:
-      - default
-
 volumes:
   postgres-data:
-  rabbitmq-data:
 
 networks:
   default:

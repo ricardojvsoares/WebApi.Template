@@ -6,7 +6,7 @@ namespace Application.Users.Commands.AssignRoleToUser;
 
 public static class AssignRoleToUserCommandHandler
 {
-    public static async Task<ErrorOr<UserResponse>> HandleAsync(
+    public static async Task<ErrorOr<AssignRoleToUserResponse>> HandleAsync(
         AssignRoleToUserCommand command,
         ILogger logger,
         IUserRepository userRepository,
@@ -45,7 +45,14 @@ public static class AssignRoleToUserCommandHandler
                 user.Id,
                 cancellationToken);
 
-            return user.ToResponse(roles);
+            return new AssignRoleToUserResponse(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                user.IsActive,
+                roles,
+                user.CreatedAtUtc,
+                user.UpdatedAtUtc);
         }
         catch (Exception ex)
         {

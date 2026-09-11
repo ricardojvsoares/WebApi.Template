@@ -1,4 +1,3 @@
-using Application.Todos;
 using Application.Todos.Commands.CreateTodo;
 using Domain.Authorization;
 using ErrorOr;
@@ -19,7 +18,7 @@ internal sealed class CreateTodo
             .WithName("CreateTodo")
             .WithSummary("Create todo")
             .RequirePermission(TodoPermissions.Create)
-            .Produces<TodoResponse>(StatusCodes.Status201Created)
+            .Produces<CreateTodoResponse>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
     }
 
@@ -28,7 +27,7 @@ internal sealed class CreateTodo
         IMessageBus bus,
         CancellationToken cancellationToken)
     {
-        var result = await bus.InvokeAsync<ErrorOr<TodoResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<CreateTodoResponse>>(
             command,
             cancellationToken);
 

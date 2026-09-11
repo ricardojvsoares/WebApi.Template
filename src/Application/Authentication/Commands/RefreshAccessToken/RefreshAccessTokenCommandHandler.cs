@@ -7,7 +7,7 @@ namespace Application.Authentication.Commands.RefreshAccessToken;
 
 public static class RefreshAccessTokenCommandHandler
 {
-    public static async Task<ErrorOr<AuthenticationResponse>> HandleAsync(
+    public static async Task<ErrorOr<RefreshAccessTokenResponse>> HandleAsync(
         RefreshAccessTokenCommand command,
         ILogger logger,
         IUserRepository userRepository,
@@ -35,7 +35,7 @@ public static class RefreshAccessTokenCommandHandler
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            if (!stored.IsActive(nowUtc))
+            if (stored.RevokedAtUtc is not null || stored.ExpiresAtUtc <= nowUtc)
             {
                 // A token that was already rotated is being replayed, which means a copy
                 // leaked. Revoke the whole family so the attacker's chain dies too.
@@ -63,7 +63,7 @@ public static class RefreshAccessTokenCommandHandler
                 return invalidToken;
             }
 
-            var response = await TokenIssuer.IssueAsync(
+            var tokens = await TokenIssuer.IssueAsync(
                 user,
                 userRepository,
                 refreshTokenRepository,
@@ -75,10 +75,13 @@ public static class RefreshAccessTokenCommandHandler
             await refreshTokenRepository.RevokeAsync(
                 stored.Id,
                 nowUtc,
-                refreshTokenGenerator.Hash(response.RefreshToken),
+                refreshTokenGenerator.Hash(tokens.RefreshToken),
                 cancellationToken);
 
-            return response;
+            return new RefreshAccessTokenResponse(
+                tokens.AccessToken,
+                tokens.AccessTokenExpiresAtUtc,
+                tokens.RefreshToken);
         }
         catch (Exception ex)
         {

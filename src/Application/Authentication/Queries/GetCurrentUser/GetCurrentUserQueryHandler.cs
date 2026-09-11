@@ -12,7 +12,7 @@ public static class GetCurrentUserQueryHandler
         "Style",
         "IDE0060:Remove unused parameter",
         Justification = "Wolverine binds the handler on the message parameter's type, so it is required even though this query carries no data.")]
-    public static async Task<ErrorOr<CurrentUserResponse>> HandleAsync(
+    public static async Task<ErrorOr<GetCurrentUserResponse>> HandleAsync(
         GetCurrentUserQuery query,
         ILogger logger,
         IUserRepository userRepository,
@@ -46,7 +46,7 @@ public static class GetCurrentUserQueryHandler
                 userId,
                 cancellationToken);
 
-            return new CurrentUserResponse(
+            return new GetCurrentUserResponse(
                 user.Id,
                 user.Email,
                 user.DisplayName,

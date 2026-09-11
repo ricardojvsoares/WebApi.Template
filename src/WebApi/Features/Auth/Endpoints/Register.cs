@@ -1,4 +1,3 @@
-using Application.Authentication;
 using Application.Authentication.Commands.Register;
 using ErrorOr;
 using WebApi.Abstractions;
@@ -22,7 +21,7 @@ internal sealed class Register
             .AllowAnonymous()
             .WithName("Register")
             .WithSummary("Register")
-            .Produces<AuthenticationResponse>()
+            .Produces<RegisterResponse>()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesValidationProblem();
     }
@@ -32,7 +31,7 @@ internal sealed class Register
         IMessageBus bus,
         CancellationToken cancellationToken)
     {
-        var result = await bus.InvokeAsync<ErrorOr<AuthenticationResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<RegisterResponse>>(
             command,
             cancellationToken);
 

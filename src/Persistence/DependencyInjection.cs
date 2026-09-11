@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Persistence.Data;
 using Persistence.Seeding;
+using Persistence.TypeHandlers;
 using Scrutor;
 
 namespace Persistence;
@@ -21,6 +22,7 @@ public static class DependencyInjection
 
         // Tables use snake_case columns while entities use PascalCase properties.
         DefaultTypeMap.MatchNamesWithUnderscores = true;
+        SqlMapper.AddTypeHandler(new UriTypeHandler());
 
         // Scoped to repositories and factories on purpose: migrations, the seeder and the
         // options type have no matching interface and are registered explicitly below.

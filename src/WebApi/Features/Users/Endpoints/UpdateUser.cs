@@ -1,4 +1,3 @@
-using Application.Users;
 using Application.Users.Commands.UpdateUser;
 using Domain.Authorization;
 using ErrorOr;
@@ -19,7 +18,7 @@ internal sealed class UpdateUser
             .WithName("UpdateUser")
             .WithSummary("Update user")
             .RequirePermission(UserPermissions.Update)
-            .Produces<UserResponse>()
+            .Produces<UpdateUserResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem();
     }
@@ -35,7 +34,7 @@ internal sealed class UpdateUser
             body.DisplayName,
             body.IsActive);
 
-        var result = await bus.InvokeAsync<ErrorOr<UserResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<UpdateUserResponse>>(
             command,
             cancellationToken);
 

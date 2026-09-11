@@ -25,7 +25,6 @@
 		<PackageReference Include="Serilog.Enrichers.Thread" />
 		<PackageReference Include="Serilog.Enrichers.Process" />
 		<PackageReference Include="Serilog.Exceptions" />
-		<PackageReference Include="WolverineFx.RabbitMQ" />
 	</ItemGroup>
 
 	<ItemGroup>

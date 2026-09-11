@@ -1,6 +1,6 @@
 # WebApi
 
-A .NET 10 Web API built with Clean Architecture. It ships with permission-based JWT auth, Todo and User CRUD, FluentMigrator migrations for Postgres, and RabbitMQ integration events via Wolverine.
+A .NET 10 Web API built with Clean Architecture. It ships with permission-based JWT auth, Todo, Product, and User CRUD, FluentMigrator migrations for Postgres, and Wolverine as the in-process mediator.
 
 ---
 
@@ -8,9 +8,9 @@ A .NET 10 Web API built with Clean Architecture. It ships with permission-based 
 
 | Project            | Responsibility                                           |
 | ------------------ | -------------------------------------------------------- |
-| **Domain**         | Entities, permissions, repository interfaces             |
+| **Domain**         | Projections, permissions, repository interfaces          |
 | **Application**    | Commands, queries, validators, handlers, responses       |
-| **Infrastructure** | Password hashing, JWT / refresh tokens, RabbitMQ options |
+| **Infrastructure** | Password hashing, JWT / refresh tokens |
 | **Persistence**    | Dapper repositories, FluentMigrator migrations, seeding  |
 | **WebApi**         | HTTP endpoints, auth wiring, OpenAPI / Scalar            |
 | **Migrator**       | Console app for `up` / `down` / `list`                   |
@@ -46,7 +46,17 @@ Requires `*:todo` permissions. Callers only see their own todos.
 | `PUT`    | `/{id}/completion` | `update:todo` |
 | `DELETE` | `/{id}`            | `delete:todo` |
 
-Creating a todo publishes `TodoCreatedEvent` over RabbitMQ when messaging is enabled.
+### Products (`/api/v1/products`)
+
+Requires `*:product` permissions. Shared catalog (not owner-scoped).
+
+| Method   | Path    | Permission       |
+| -------- | ------- | ---------------- |
+| `POST`   | `/`     | `create:product` |
+| `GET`    | `/`     | `read:product`   |
+| `GET`    | `/{id}` | `read:product`   |
+| `PUT`    | `/{id}` | `update:product` |
+| `DELETE` | `/{id}` | `delete:product` |
 
 ### Users (`/api/v1/users`)
 
@@ -64,6 +74,8 @@ Requires `*:user` permissions (admin role by default).
 ---
 
 ## Feature structure
+
+For a step-by-step checklist (new feature vs new endpoint), see [docs/ADDING_FEATURES.md](docs/ADDING_FEATURES.md).
 
 Endpoints live under `Features/<Feature>/`. One Carter module owns the route group; each endpoint is its own file:
 
@@ -127,7 +139,7 @@ Default roles:
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [Docker Desktop](https://www.docker.com/) (Postgres + RabbitMQ)
+- [Docker Desktop](https://www.docker.com/) (Postgres)
 
 ### Run with Docker Compose
 
@@ -152,7 +164,6 @@ Default roles:
    | API (HTTP)  | `http://localhost:44320`       |
    | API (HTTPS) | `https://localhost:44321`      |
    | Scalar docs | `https://localhost:44321/docs` |
-   | RabbitMQ UI | `http://localhost:15672`       |
 
 Log in at `POST /api/v1/auth/login` with the seeded admin from `.env`, then paste the access token into Scalar's Authorize dialog (Bearer).
 
@@ -161,11 +172,11 @@ Log in at `POST /api/v1/auth/login` with the seeded admin from `.env`, then past
 Start dependencies only, then run the host:
 
 ```bash
-docker compose up -d postgres rabbitmq
+docker compose up -d postgres
 dotnet run --project src/WebApi
 ```
 
-Local URLs come from `launchSettings.json` (HTTP `http://localhost:5291`, docs at `/docs`). Point `PG_HOST` / `RabbitMq__Host` at `localhost` when not running inside Compose.
+Local URLs come from `launchSettings.json` (HTTP `http://localhost:5291`, docs at `/docs`). Point `PG_HOST` at `localhost` when not running inside Compose.
 
 ---
 
@@ -186,16 +197,10 @@ The admin user is **not** created by a migration. `AdminUserSeeder` runs after m
 
 ---
 
-## Messaging
-
-Wolverine publishes integration events to RabbitMQ when `RabbitMq__Enabled=true`. Set it to `false` to boot without a broker — publishing becomes a no-op and the rest of the API keeps working.
-
----
-
 ## Stack
 
 - ASP.NET Core 10, Carter, Asp.Versioning, Scalar
-- Wolverine (mediator + RabbitMQ transport) + FluentValidation
+- Wolverine (mediator) + FluentValidation
 - Dapper + Npgsql (Postgres only)
 - FluentMigrator
 - Serilog
@@ -211,9 +216,8 @@ Wolverine publishes integration events to RabbitMQ when `RabbitMq__Enabled=true`
 - Feature-based endpoints (`Features/*/Endpoints`)
 - JWT auth with refresh-token rotation
 - Permission-based authorization (`action:resource`)
-- Todo and User CRUD
+- Todo, Product, and User CRUD
 - FluentMigrator + Migrator console
-- RabbitMQ integration events via Wolverine
 - Global exception handling and OpenAPI bearer scheme
 
 ### Planned
@@ -223,4 +227,3 @@ Wolverine publishes integration events to RabbitMQ when `RabbitMq__Enabled=true`
 - OpenTelemetry
 - Health checks
 - Rate limiting
-- Transactional outbox for integration events

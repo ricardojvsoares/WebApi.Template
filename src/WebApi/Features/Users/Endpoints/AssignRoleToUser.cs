@@ -1,4 +1,3 @@
-using Application.Users;
 using Application.Users.Commands.AssignRoleToUser;
 using Domain.Authorization;
 using ErrorOr;
@@ -23,7 +22,7 @@ internal sealed class AssignRoleToUser
             .WithName("AssignRoleToUser")
             .WithSummary("Assign role")
             .RequirePermission(UserPermissions.Update)
-            .Produces<UserResponse>()
+            .Produces<AssignRoleToUserResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem();
     }
@@ -38,7 +37,7 @@ internal sealed class AssignRoleToUser
             id,
             body.RoleName);
 
-        var result = await bus.InvokeAsync<ErrorOr<UserResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<AssignRoleToUserResponse>>(
             command,
             cancellationToken);
 

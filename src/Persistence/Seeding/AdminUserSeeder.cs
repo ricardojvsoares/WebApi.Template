@@ -59,12 +59,19 @@ internal sealed class AdminUserSeeder(
         }
 
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+        var trimmedEmail = email.Trim();
 
-        var admin = User.Create(
-            email.Trim(),
-            passwordHasher.Hash(password),
-            "Administrator",
-            nowUtc);
+        var admin = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = trimmedEmail,
+            EmailNormalized = User.NormalizeEmail(trimmedEmail),
+            PasswordHash = passwordHasher.Hash(password),
+            DisplayName = "Administrator",
+            IsActive = true,
+            CreatedAtUtc = nowUtc,
+            UpdatedAtUtc = nowUtc
+        };
 
         await userRepository.AddAsync(
             admin,

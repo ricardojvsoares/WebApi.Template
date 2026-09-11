@@ -10,6 +10,7 @@ public static class PermissionRegistry
     public static IReadOnlyList<string> All { get; } =
     [
         .. TodoPermissions.All,
+        .. ProductPermissions.All,
         .. UserPermissions.All
     ];
 }

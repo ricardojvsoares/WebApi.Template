@@ -1,4 +1,3 @@
-using Application.Todos;
 using Application.Todos.Commands.CompleteTodo;
 using Domain.Authorization;
 using ErrorOr;
@@ -23,7 +22,7 @@ internal sealed class CompleteTodo
             .WithName("CompleteTodo")
             .WithSummary("Complete or reopen todo")
             .RequirePermission(TodoPermissions.Update)
-            .Produces<TodoResponse>()
+            .Produces<CompleteTodoResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
     }
@@ -38,7 +37,7 @@ internal sealed class CompleteTodo
             id,
             body.IsCompleted);
 
-        var result = await bus.InvokeAsync<ErrorOr<TodoResponse>>(
+        var result = await bus.InvokeAsync<ErrorOr<CompleteTodoResponse>>(
             command,
             cancellationToken);
 
