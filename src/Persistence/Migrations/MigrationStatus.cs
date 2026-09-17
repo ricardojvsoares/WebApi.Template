@@ -1,6 +1,6 @@
 namespace Persistence.Migrations;
 
 public sealed record MigrationStatus(
-    long Version,
+    string Id,
     string Name,
     bool IsApplied);

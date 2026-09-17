@@ -2,6 +2,7 @@ using Application.Abstractions.Data;
 using Dapper;
 using Domain.Todos.Entities;
 using Domain.Todos.Repositories;
+using Persistence.Todos.Sql;
 
 namespace Persistence.Todos.Repositories;
 
@@ -9,29 +10,18 @@ internal sealed class TodoRepository(
     INpgsqlConnectionFactory connectionFactory)
     : ITodoRepository
 {
-    private const string SelectColumns = """
-        id, title, description, is_completed, due_date_utc, completed_at_utc,
-        owner_user_id, created_at_utc, updated_at_utc
-        """;
-
     private readonly INpgsqlConnectionFactory _connectionFactory = connectionFactory;
 
     public async Task<Todo?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        const string sql = $"""
-            SELECT {SelectColumns}
-            FROM todos
-            WHERE id = @Id;
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         return await connection.QuerySingleOrDefaultAsync<Todo>(
             new CommandDefinition(
-                sql,
+                TodoSql.GetById,
                 new { Id = id },
                 cancellationToken: cancellationToken));
     }
@@ -43,23 +33,12 @@ internal sealed class TodoRepository(
         int take,
         CancellationToken cancellationToken = default)
     {
-        // The ::type casts let Postgres resolve the parameter types when a filter is null,
-        // which it cannot infer from an untyped NULL on its own.
-        const string sql = $"""
-            SELECT {SelectColumns}
-            FROM todos
-            WHERE (@OwnerUserId::uuid IS NULL OR owner_user_id = @OwnerUserId::uuid)
-              AND (@IsCompleted::boolean IS NULL OR is_completed = @IsCompleted::boolean)
-            ORDER BY created_at_utc DESC, id
-            LIMIT @Take OFFSET @Skip;
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         var todos = await connection.QueryAsync<Todo>(
             new CommandDefinition(
-                sql,
+                TodoSql.List,
                 new
                 {
                     OwnerUserId = ownerUserId,
@@ -77,19 +56,12 @@ internal sealed class TodoRepository(
         bool? isCompleted,
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            SELECT COUNT(*)
-            FROM todos
-            WHERE (@OwnerUserId::uuid IS NULL OR owner_user_id = @OwnerUserId::uuid)
-              AND (@IsCompleted::boolean IS NULL OR is_completed = @IsCompleted::boolean);
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         return await connection.ExecuteScalarAsync<int>(
             new CommandDefinition(
-                sql,
+                TodoSql.Count,
                 new
                 {
                     OwnerUserId = ownerUserId,
@@ -102,21 +74,12 @@ internal sealed class TodoRepository(
         Todo todo,
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            INSERT INTO todos (
-                id, title, description, is_completed, due_date_utc, completed_at_utc,
-                owner_user_id, created_at_utc, updated_at_utc)
-            VALUES (
-                @Id, @Title, @Description, @IsCompleted, @DueDateUtc, @CompletedAtUtc,
-                @OwnerUserId, @CreatedAtUtc, @UpdatedAtUtc);
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         await connection.ExecuteAsync(
             new CommandDefinition(
-                sql,
+                TodoSql.Insert,
                 todo,
                 cancellationToken: cancellationToken));
     }
@@ -125,23 +88,12 @@ internal sealed class TodoRepository(
         Todo todo,
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            UPDATE todos
-            SET title = @Title,
-                description = @Description,
-                is_completed = @IsCompleted,
-                due_date_utc = @DueDateUtc,
-                completed_at_utc = @CompletedAtUtc,
-                updated_at_utc = @UpdatedAtUtc
-            WHERE id = @Id;
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         await connection.ExecuteAsync(
             new CommandDefinition(
-                sql,
+                TodoSql.Update,
                 todo,
                 cancellationToken: cancellationToken));
     }
@@ -150,17 +102,12 @@ internal sealed class TodoRepository(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            DELETE FROM todos
-            WHERE id = @Id;
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         var affected = await connection.ExecuteAsync(
             new CommandDefinition(
-                sql,
+                TodoSql.Delete,
                 new { Id = id },
                 cancellationToken: cancellationToken));
 

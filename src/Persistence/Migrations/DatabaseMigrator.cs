@@ -1,11 +1,13 @@
-using FluentMigrator.Runner;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
+using Persistence.Data;
 
 namespace Persistence.Migrations;
 
 /// <summary>
-/// Thin wrapper over the FluentMigrator runner. Both the API's startup path and the
-/// Migrator console app go through here so they cannot drift apart.
+/// Thin wrapper over EF Core migrations.
 /// </summary>
 public static class DatabaseMigrator
 {
@@ -13,10 +15,8 @@ public static class DatabaseMigrator
         IServiceProvider services)
     {
         using var scope = services.CreateScope();
-
-        scope.ServiceProvider
-            .GetRequiredService<IMigrationRunner>()
-            .MigrateUp();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        dbContext.Database.Migrate();
     }
 
     /// <summary>
@@ -27,10 +27,22 @@ public static class DatabaseMigrator
         int steps)
     {
         using var scope = services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var applied = dbContext.Database.GetAppliedMigrations().ToList();
 
-        scope.ServiceProvider
-            .GetRequiredService<IMigrationRunner>()
-            .Rollback(steps);
+        if (steps > applied.Count)
+        {
+            throw new InvalidOperationException(
+                $"Cannot roll back {steps} migration(s); only {applied.Count} applied.");
+        }
+
+        var targetIndex = applied.Count - steps - 1;
+        var target = targetIndex >= 0
+            ? applied[targetIndex]
+            : Migration.InitialDatabase;
+
+        var migrator = dbContext.GetService<IMigrator>();
+        migrator.Migrate(target);
     }
 
     /// <summary>
@@ -40,22 +52,17 @@ public static class DatabaseMigrator
         IServiceProvider services)
     {
         using var scope = services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
-        var versionLoader = scope.ServiceProvider.GetRequiredService<IVersionLoader>();
-
-        versionLoader.LoadVersionInfo();
-        var applied = versionLoader.VersionInfo;
+        var applied = dbContext.Database.GetAppliedMigrations().ToHashSet(StringComparer.Ordinal);
+        var all = dbContext.Database.GetMigrations();
 
         return
         [
-            .. runner.MigrationLoader
-                .LoadMigrations()
-                .OrderBy(m => m.Key)
-                .Select(m => new MigrationStatus(
-                    m.Key,
-                    m.Value.Migration.GetType().Name,
-                    applied.HasAppliedMigration(m.Key)))
+            .. all.Select(name => new MigrationStatus(
+                name,
+                name,
+                applied.Contains(name)))
         ];
     }
 }

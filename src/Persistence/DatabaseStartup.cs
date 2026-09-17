@@ -18,12 +18,7 @@ public static class DatabaseStartup
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var options = services.GetRequiredService<PostgresOptions>();
-
-        if (options.RunMigrationsOnStartup)
-        {
-            DatabaseMigrator.ApplyPending(services);
-        }
+        DatabaseMigrator.ApplyPending(services);
 
         using var scope = services.CreateScope();
 

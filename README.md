@@ -1,19 +1,18 @@
 # WebApi
 
-A .NET 10 Web API built with Clean Architecture. It ships with permission-based JWT auth, Todo, Product, and User CRUD, FluentMigrator migrations for Postgres, and Wolverine as the in-process mediator.
+A .NET 10 Web API built with Clean Architecture. It ships with permission-based JWT auth, Todo, Product, and User CRUD, EF Core migrations + Dapper runtime access for Postgres, and Wolverine as the in-process mediator.
 
 ---
 
 ## Architecture
 
-| Project            | Responsibility                                           |
-| ------------------ | -------------------------------------------------------- |
-| **Domain**         | Projections, permissions, repository interfaces          |
-| **Application**    | Commands, queries, validators, handlers, responses       |
-| **Infrastructure** | Password hashing, JWT / refresh tokens |
-| **Persistence**    | Dapper repositories, FluentMigrator migrations, seeding  |
-| **WebApi**         | HTTP endpoints, auth wiring, OpenAPI / Scalar            |
-| **Migrator**       | Console app for `up` / `down` / `list`                   |
+| Project            | Responsibility                                          |
+| ------------------ | ------------------------------------------------------- |
+| **Domain**         | Entities, permissions, repository interfaces            |
+| **Application**    | Commands, queries, validators, handlers, responses      |
+| **Infrastructure** | Password hashing, JWT / refresh tokens                  |
+| **Persistence**    | EF Core schema/migrations, Dapper repositories, seeding |
+| **WebApi**         | HTTP endpoints, auth wiring, OpenAPI / Scalar           |
 
 Dependencies point inward: WebApi → Application ← Infrastructure / Persistence → Domain.
 
@@ -182,18 +181,21 @@ Local URLs come from `launchSettings.json` (HTTP `http://localhost:5291`, docs a
 
 ## Migrations
 
-Migrations live in `src/Persistence/Migrations` as FluentMigrator classes.
+EF Core owns schema modeling (`AppDbContext` + Fluent configs) and migrations under `src/Persistence/Migrations`. Runtime CRUD uses **Dapper** + parameterized SQL via `INpgsqlConnectionFactory` — repositories do not use `AppDbContext`.
 
-- **Development:** pending migrations apply on API startup when `PG_RUN_MIGRATIONS_ON_STARTUP=true`.
-- **CI / production:** use the Migrator console:
+- **Development:** pending migrations apply on API startup.
+
+Add a migration after model / Fluent config changes:
 
 ```bash
-dotnet run --project src/Migrator -- list
-dotnet run --project src/Migrator -- up
-dotnet run --project src/Migrator -- down --steps 1
+dotnet ef migrations add {Name} --project src/Persistence --startup-project src/WebApi --output-dir Migrations
 ```
 
+**Cutover note:** databases created with the old FluentMigrator `VersionInfo` table are not auto-upgraded. Drop/recreate the database (or baseline `__EFMigrationsHistory` manually) before applying EF migrations.
+
 The admin user is **not** created by a migration. `AdminUserSeeder` runs after migrations and uses `Auth__SeedAdmin__Email` / `Auth__SeedAdmin__Password` (no-op if either is empty or the user already exists).
+
+Audited entities (`User`, `Todo`, `Product`) inherit `Domain.Common.Entity` (`Id`, `CreatedAtUtc` / `CreatedBy`, `UpdatedAtUtc` / `UpdatedBy`). `Role` and `RefreshToken` stay lean.
 
 ---
 
@@ -201,8 +203,7 @@ The admin user is **not** created by a migration. `AdminUserSeeder` runs after m
 
 - ASP.NET Core 10, Carter, Asp.Versioning, Scalar
 - Wolverine (mediator) + FluentValidation
-- Dapper + Npgsql (Postgres only)
-- FluentMigrator
+- EF Core (schema/migrations) + Dapper (runtime) + Npgsql (Postgres only)
 - Serilog
 - ErrorOr
 
@@ -217,7 +218,7 @@ The admin user is **not** created by a migration. `AdminUserSeeder` runs after m
 - JWT auth with refresh-token rotation
 - Permission-based authorization (`action:resource`)
 - Todo, Product, and User CRUD
-- FluentMigrator + Migrator console
+- EF Core migrations + Dapper repositories
 - Global exception handling and OpenAPI bearer scheme
 
 ### Planned

@@ -4,15 +4,21 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<!-- EF scaffolds block-scoped namespaces / jagged arrays; do not fight the generator. -->
+		<NoWarn>$(NoWarn);IDE0161;IDE0053;CA1825;CA1861;CA1814</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Dapper" />
-		<PackageReference Include="FluentMigrator" />
-		<PackageReference Include="FluentMigrator.Runner" />
-		<PackageReference Include="FluentMigrator.Runner.Postgres" />
+		<PackageReference Include="EFCore.NamingConventions" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="Npgsql" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
 	</ItemGroup>
 	
 	<ItemGroup>

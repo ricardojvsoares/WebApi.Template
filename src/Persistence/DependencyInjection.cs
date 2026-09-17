@@ -1,8 +1,7 @@
 ﻿using Dapper;
-using FluentMigrator.Runner;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Persistence.Data;
 using Persistence.Seeding;
 using Persistence.TypeHandlers;
@@ -19,6 +18,12 @@ public static class DependencyInjection
         var options = PostgresOptions.FromConfiguration(configuration);
 
         services.AddSingleton(options);
+
+        // EF Core is registered for migrations / Database.Migrate only.
+        // Runtime CRUD goes through Dapper repositories.
+        services.AddDbContext<AppDbContext>(builder => builder
+            .UseNpgsql(options.ConnectionString)
+            .UseSnakeCaseNamingConvention());
 
         // Tables use snake_case columns while entities use PascalCase properties.
         DefaultTypeMap.MatchNamesWithUnderscores = true;
@@ -41,14 +46,6 @@ public static class DependencyInjection
 
         services.AddScoped<AdminUserSeeder>();
         services.AddScoped<PermissionConsistencyCheck>();
-
-        services
-            .AddFluentMigratorCore()
-            .ConfigureRunner(builder => builder
-                .AddPostgres()
-                .WithGlobalConnectionString(options.ConnectionString)
-                .ScanIn(AssemblyReference.Assembly).For.Migrations())
-            .AddLogging(builder => builder.AddFluentMigratorConsole());
 
         return services;
     }

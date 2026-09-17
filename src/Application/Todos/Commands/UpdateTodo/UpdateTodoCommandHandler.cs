@@ -42,6 +42,7 @@ public static class UpdateTodoCommandHandler
             todo.Title = command.Title.Trim();
             todo.Description = command.Description?.Trim();
             todo.DueDateUtc = UtcDateTimes.Normalize(command.DueDateUtc);
+            todo.UpdatedBy = ownerUserId;
             todo.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
 
             await todoRepository.UpdateAsync(

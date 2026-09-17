@@ -1,3 +1,4 @@
+using Application.Abstractions.Authentication;
 using Application.Abstractions.Security;
 using Domain.Users.Entities;
 using Domain.Users.Repositories;
@@ -14,11 +15,17 @@ public static class CreateUserCommandHandler
         IUserRepository userRepository,
         IRoleRepository roleRepository,
         IPasswordHasher passwordHasher,
+        ICurrentUser currentUser,
         TimeProvider timeProvider,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            if (currentUser.UserId is not Guid createdBy)
+            {
+                return Error.Unauthorized(description: "The request is not authenticated.");
+            }
+
             if (await userRepository.EmailExistsAsync(command.Email, cancellationToken))
             {
                 return Error.Conflict(description: "An account with that email already exists.");
@@ -56,7 +63,9 @@ public static class CreateUserCommandHandler
                 PasswordHash = passwordHasher.Hash(command.Password),
                 DisplayName = command.DisplayName.Trim(),
                 IsActive = true,
+                CreatedBy = createdBy,
                 CreatedAtUtc = nowUtc,
+                UpdatedBy = createdBy,
                 UpdatedAtUtc = nowUtc
             };
 

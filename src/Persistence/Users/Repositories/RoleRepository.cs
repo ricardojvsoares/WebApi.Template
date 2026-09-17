@@ -2,6 +2,7 @@ using Application.Abstractions.Data;
 using Dapper;
 using Domain.Users.Entities;
 using Domain.Users.Repositories;
+using Persistence.Users.Sql;
 
 namespace Persistence.Users.Repositories;
 
@@ -15,18 +16,12 @@ internal sealed class RoleRepository(
         string name,
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            SELECT id, name, description
-            FROM roles
-            WHERE lower(name) = lower(@Name);
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         return await connection.QuerySingleOrDefaultAsync<Role>(
             new CommandDefinition(
-                sql,
+                RoleSql.GetByName,
                 new { Name = name },
                 cancellationToken: cancellationToken));
     }
@@ -34,18 +29,12 @@ internal sealed class RoleRepository(
     public async Task<IReadOnlyList<Role>> ListAsync(
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            SELECT id, name, description
-            FROM roles
-            ORDER BY name;
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         var roles = await connection.QueryAsync<Role>(
             new CommandDefinition(
-                sql,
+                RoleSql.List,
                 cancellationToken: cancellationToken));
 
         return [.. roles];
@@ -56,18 +45,12 @@ internal sealed class RoleRepository(
         Guid roleId,
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            INSERT INTO user_roles (user_id, role_id)
-            VALUES (@UserId, @RoleId)
-            ON CONFLICT (user_id, role_id) DO NOTHING;
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         await connection.ExecuteAsync(
             new CommandDefinition(
-                sql,
+                RoleSql.AssignToUser,
                 new { UserId = userId, RoleId = roleId },
                 cancellationToken: cancellationToken));
     }
@@ -77,18 +60,12 @@ internal sealed class RoleRepository(
         Guid roleId,
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            DELETE FROM user_roles
-            WHERE user_id = @UserId
-              AND role_id = @RoleId;
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         var affected = await connection.ExecuteAsync(
             new CommandDefinition(
-                sql,
+                RoleSql.RemoveFromUser,
                 new { UserId = userId, RoleId = roleId },
                 cancellationToken: cancellationToken));
 
@@ -98,18 +75,12 @@ internal sealed class RoleRepository(
     public async Task<IReadOnlyList<string>> GetKnownPermissionNamesAsync(
         CancellationToken cancellationToken = default)
     {
-        const string sql = """
-            SELECT name
-            FROM permissions
-            ORDER BY name;
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(
             cancellationToken);
 
         var permissions = await connection.QueryAsync<string>(
             new CommandDefinition(
-                sql,
+                RoleSql.GetKnownPermissionNames,
                 cancellationToken: cancellationToken));
 
         return [.. permissions];

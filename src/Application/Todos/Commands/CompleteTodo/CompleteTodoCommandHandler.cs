@@ -48,6 +48,7 @@ public static class CompleteTodoCommandHandler
 
                 todo.IsCompleted = true;
                 todo.CompletedAtUtc = nowUtc;
+                todo.UpdatedBy = ownerUserId;
                 todo.UpdatedAtUtc = nowUtc;
             }
             else
@@ -59,6 +60,7 @@ public static class CompleteTodoCommandHandler
 
                 todo.IsCompleted = false;
                 todo.CompletedAtUtc = null;
+                todo.UpdatedBy = ownerUserId;
                 todo.UpdatedAtUtc = nowUtc;
             }
 

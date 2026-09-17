@@ -4,24 +4,20 @@ using Npgsql;
 namespace Persistence.Data;
 
 /// <summary>
-/// Owns the single Postgres connection string so that both the connection factory
-/// and the migration runner build it from the same place.
+/// Owns the single Postgres connection string so that DbContext and the migration runner
+/// build it from the same place.
 /// </summary>
 internal sealed class PostgresOptions
 {
     private const int DefaultPort = 5432;
 
     private PostgresOptions(
-        string connectionString,
-        bool runMigrationsOnStartup)
+        string connectionString)
     {
         ConnectionString = connectionString;
-        RunMigrationsOnStartup = runMigrationsOnStartup;
     }
 
     public string ConnectionString { get; }
-
-    public bool RunMigrationsOnStartup { get; }
 
     public static PostgresOptions FromConfiguration(
         IConfiguration configuration)
@@ -42,13 +38,8 @@ internal sealed class PostgresOptions
             Password = configuration["PG_PASSWORD"]
         };
 
-        if (!bool.TryParse(configuration["PG_RUN_MIGRATIONS_ON_STARTUP"], out bool runMigrations))
-        {
-            runMigrations = false;
-        }
-
         return new PostgresOptions(
-            builder.ConnectionString,
-            runMigrations);
+            builder.ConnectionString
+        );
     }
 }

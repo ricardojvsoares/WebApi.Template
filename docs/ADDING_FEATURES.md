@@ -6,12 +6,12 @@ Copy **Products** (or **Todos**) as the vertical-slice template. Stack reminders
 
 | Layer | Tech |
 | ----- | ---- |
-| Domain | Plain projections, permission constants, repository interfaces |
+| Domain | Entities (audit via `Domain.Common.Entity` when needed), permission constants, repository interfaces |
 | Application | Wolverine commands/queries (static handlers), FluentValidation, per-use-case responses |
-| Persistence | Dapper repositories, FluentMigrator |
+| Persistence | EF Core schema/migrations + Dapper repositories |
 | WebApi | Carter modules + `IEndpoint` classes |
 
-No EF Core, MediatR, AutoMapper, or MVC controllers. Repositories, handlers, validators, Carter modules, and permission policies are **auto-discovered** — you rarely edit DI.
+No MediatR, AutoMapper, or MVC controllers. Repositories, handlers, validators, Carter modules, and permission policies are **auto-discovered** — you rarely edit DI.
 
 ---
 
@@ -29,14 +29,17 @@ Replace `{Feature}` (plural folder) and `{Entity}` (singular type):
 | Response | `{Verb}{Entity}Response.cs` in the same use-case folder | `CreateProductResponse` |
 | Access (ownership) | `Application/{Feature}/{Entity}Access.cs` | optional |
 | Repo impl | `Persistence/{Feature}/Repositories/{Entity}Repository.cs` | `internal sealed` |
-| Migration | `Persistence/Migrations/{yyyyMMddHHmmss}_{Name}.cs` | FluentMigrator |
+| SQL | `Persistence/{Feature}/Sql/{Entity}Sql.cs` | Dapper statement constants |
+| EF config | `Persistence/Configurations/{Entity}Configuration.cs` | `IEntityTypeConfiguration<>` |
+| Migration | `dotnet ef migrations add {Name}` → `Persistence/Migrations/` | EF Core |
 | API module | `WebApi/Features/{Feature}/{Feature}Module.cs` | `ICarterModule` |
 | Endpoint | `WebApi/Features/{Feature}/Endpoints/{Verb}{Entity}.cs` | `IEndpoint` |
 | Body DTO (when route has `{id}`) | `{Verb}{Entity}Body` in the endpoint file | avoid generic `Request` |
 
 - Permissions: `action:resource` (`create:todo`, `read:user`).
 - Routes: `api/v{apiVersion:apiVersion}/{feature-kebab}` (e.g. `products`).
-- Tables/columns: `snake_case` (Dapper `MatchNamesWithUnderscores`).
+- Tables/columns: `snake_case` (EF naming conventions for migrations; Dapper `MatchNamesWithUnderscores` at runtime).
+- Audited entities inherit `Domain.Common.Entity` and set `CreatedBy` / `UpdatedBy` in handlers.
 
 ---
 
@@ -48,7 +51,7 @@ Work **bottom-up**. Example: feature `Widgets` / entity `Widget` / resource `wid
 
 #### Step 1 — Domain
 
-1. `src/Domain/Widgets/Entities/Widget.cs` — `public sealed class` projection with public getters/setters (no factory `Create` / mutator `Update`).
+1. `src/Domain/Widgets/Entities/Widget.cs` — `public sealed class` (inherit `Entity` when audit fields apply) with public getters/setters (no factory `Create` / mutator `Update`).
 2. `src/Domain/Widgets/Repositories/IWidgetRepository.cs` — mirror Products: `GetByIdAsync`, `ListAsync`, `CountAsync`, `AddAsync`, `UpdateAsync`, `DeleteAsync`.
 3. `src/Domain/Authorization/WidgetPermissions.cs` — `Create` / `Read` / `Update` / `Delete` + `All`.
 4. Edit `src/Domain/Authorization/PermissionRegistry.cs` — add `.. WidgetPermissions.All`.
@@ -75,25 +78,32 @@ public static class CreateWidgetCommandHandler
         /* other DI */,
         CancellationToken cancellationToken = default)
     {
-        // Map the projection to CreateWidgetResponse inline.
+        // Map the entity to CreateWidgetResponse inline.
     }
 }
 ```
 
 #### Step 3 — Persistence
 
-7. `src/Persistence/Widgets/Repositories/WidgetRepository.cs` — `internal sealed`, Dapper SQL. **No manual DI** (Scrutor registers `*Repository`).
-8. New migration `src/Persistence/Migrations/{timestamp}_CreateWidgetsAndSeedWidgetPermissions.cs`:
-   - Create table, FKs, indexes
-   - Insert permissions from `WidgetPermissions.All`
-   - Assign to roles (`admin`, and `user` if appropriate)
-   - Pattern: `20260909200000_CreateProductsAndSeedProductPermissions.cs`
-   - **Do not** only edit an already-applied seed migration
+7. `src/Persistence/Widgets/Sql/WidgetSql.cs` — `internal static` SQL constants (shared `Columns`, GetById/List/Count/Insert/Update/Delete).
+8. `src/Persistence/Widgets/Repositories/WidgetRepository.cs` — `internal sealed`, inject `INpgsqlConnectionFactory`, call `WidgetSql.*`. **No manual DI** (Scrutor registers `*Repository`). Do **not** inject `AppDbContext` for CRUD.
+9. `src/Persistence/Configurations/WidgetConfiguration.cs` — table, keys, indexes, FKs (EF schema only).
+10. Add `DbSet<Widget>` on `AppDbContext` so migrations see the entity.
+11. New EF migration (also seed permissions + role grants):
+
+```bash
+dotnet ef migrations add CreateWidgetsAndSeedWidgetPermissions \
+  --project src/Persistence --startup-project src/WebApi --output-dir Migrations
+```
+
+   - Prefer `HasData` / migration `InsertData` for permission rows (stable Guids).
+   - Assign to roles (`admin`, and `user` if appropriate).
+   - **Do not** only edit an already-applied migration.
 
 #### Step 4 — WebApi
 
-9. `src/WebApi/Features/Widgets/WidgetsModule.cs` — `ICarterModule`, group route, `MapEndpoint<…>()` for each endpoint.
-10. Endpoints under `Endpoints/`:
+12. `src/WebApi/Features/Widgets/WidgetsModule.cs` — `ICarterModule`, group route, `MapEndpoint<…>()` for each endpoint.
+13. Endpoints under `Endpoints/`:
     - `CreateWidget` — `MapPost("/")`, `RequirePermission(WidgetPermissions.Create)`, `ToCreated(...)`
     - `ListWidgets` / `GetWidgetById` — `ToOk()`
     - `UpdateWidget` — route id + uniquely named body → command
@@ -103,8 +113,8 @@ Endpoint pattern: `internal sealed class X : IEndpoint` with `static void Map(..
 
 #### Step 5 — Verify
 
-11. Update `README.md` feature table if you document APIs there.
-12. Run migrations / start the API — `PermissionConsistencyCheck` must pass (every `PermissionRegistry` name must exist in DB).
+14. Update `README.md` feature table if you document APIs there.
+15. Run migrations / start the API — `PermissionConsistencyCheck` must pass (every `PermissionRegistry` name must exist in DB).
 
 ### What is auto-wired
 
@@ -119,7 +129,7 @@ Endpoint pattern: `internal sealed class X : IEndpoint` with `static void Map(..
 ### What you must touch manually
 
 - `PermissionRegistry`
-- FluentMigrator seed for new permissions
+- EF model config + migration (including permission seed)
 - `*Module.MapEndpoint<T>()`
 
 ---
@@ -133,14 +143,14 @@ References:
 
 ### Checklist (example: `ArchiveTodo`)
 
-1. **Domain (if needed)** — new fields on the projection. Skip if existing fields suffice. Handlers assign properties directly.
+1. **Domain (if needed)** — new fields on the entity. Skip if existing fields suffice. Handlers assign properties directly.
 2. **Application** — new folder:
    - `Application/Todos/Commands/ArchiveTodo/ArchiveTodoCommand.cs`
    - `ArchiveTodoCommandHandler.cs`
    - `ArchiveTodoResponse.cs` (when the endpoint returns a DTO)
    - `ArchiveTodoValidator.cs` (if input needs rules)
    - Reuse repository and access helpers.
-3. **Persistence** — only if new columns or SQL; otherwise reuse `UpdateAsync`. New columns → new FluentMigrator migration.
+3. **Persistence** — only if new columns; otherwise reuse `UpdateAsync`. New columns → EF configuration + Dapper SQL updates + `dotnet ef migrations add`.
 4. **Permissions** — usually reuse an existing constant (`TodoPermissions.Update`). New permission only if product requires it → constant + `All` + **additive** migration (registry group already listed).
 5. **WebApi** — `Features/Todos/Endpoints/ArchiveTodo.cs` implementing `IEndpoint`.
 6. **Module** — `.MapEndpoint<ArchiveTodo>()` in `TodosModule.cs`.
@@ -155,11 +165,11 @@ Command + Handler + Response (+ Validator) + Endpoint + one `MapEndpoint` line i
 ## Order at a glance
 
 ```
-1. Projection + IRepository + *Permissions + PermissionRegistry
+1. Entity + IRepository + *Permissions + PermissionRegistry
 2. Access (optional)
 3. Commands & Queries (+ Handlers + Responses + Validators)
-4. Dapper Repository
-5. FluentMigrator (table + permission seed)
+4. Dapper Repository + `{Entity}Sql` + IEntityTypeConfiguration
+5. EF migration (table + permission seed)
 6. Carter Module + Endpoints
 7. README (optional)
 ```

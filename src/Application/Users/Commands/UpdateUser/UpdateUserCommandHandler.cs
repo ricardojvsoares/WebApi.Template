@@ -18,7 +18,12 @@ public static class UpdateUserCommandHandler
     {
         try
         {
-            if (command.Id == currentUser.UserId && !command.IsActive)
+            if (currentUser.UserId is not Guid updatedBy)
+            {
+                return Error.Unauthorized(description: "The request is not authenticated.");
+            }
+
+            if (command.Id == updatedBy && !command.IsActive)
             {
                 return Error.Validation(
                     code: nameof(command.IsActive),
@@ -39,6 +44,7 @@ public static class UpdateUserCommandHandler
 
             user.DisplayName = command.DisplayName.Trim();
             user.IsActive = command.IsActive;
+            user.UpdatedBy = updatedBy;
             user.UpdatedAtUtc = nowUtc;
 
             await userRepository.UpdateAsync(

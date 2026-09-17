@@ -31,16 +31,19 @@ public static class RegisterCommandHandler
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
             var email = command.Email.Trim();
+            var userId = Guid.NewGuid();
 
             var user = new User
             {
-                Id = Guid.NewGuid(),
+                Id = userId,
                 Email = email,
                 EmailNormalized = User.NormalizeEmail(email),
                 PasswordHash = passwordHasher.Hash(command.Password),
                 DisplayName = command.DisplayName.Trim(),
                 IsActive = true,
+                CreatedBy = userId,
                 CreatedAtUtc = nowUtc,
+                UpdatedBy = userId,
                 UpdatedAtUtc = nowUtc
             };
 

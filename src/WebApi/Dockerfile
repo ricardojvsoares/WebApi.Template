@@ -19,7 +19,6 @@ COPY ["src/Infrastructure/Infrastructure.csproj", "src/Infrastructure/"]
 COPY ["src/Application/Application.csproj", "src/Application/"]
 COPY ["src/Domain/Domain.csproj", "src/Domain/"]
 COPY ["src/Persistence/Persistence.csproj", "src/Persistence/"]
-COPY ["src/Migrator/Migrator.csproj", "src/Migrator/"]
 RUN dotnet restore "./src/WebApi/WebApi.csproj"
 COPY . .
 WORKDIR "/src/src/WebApi"

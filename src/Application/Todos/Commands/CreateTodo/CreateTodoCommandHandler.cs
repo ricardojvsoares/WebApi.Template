@@ -35,7 +35,9 @@ public static class CreateTodoCommandHandler
                 OwnerUserId = ownerUserId,
                 IsCompleted = false,
                 CompletedAtUtc = null,
+                CreatedBy = ownerUserId,
                 CreatedAtUtc = nowUtc,
+                UpdatedBy = ownerUserId,
                 UpdatedAtUtc = nowUtc
             };
 

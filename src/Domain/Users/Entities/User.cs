@@ -1,8 +1,9 @@
+using Domain.Common;
+
 namespace Domain.Users.Entities;
 
-public sealed class User
+public sealed class User : Entity
 {
-    public Guid Id { get; set; }
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
@@ -14,8 +15,8 @@ public sealed class User
     public string PasswordHash { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public bool IsActive { get; set; }
-    public DateTime CreatedAtUtc { get; set; }
-    public DateTime UpdatedAtUtc { get; set; }
+
+    public ICollection<Role> Roles { get; } = [];
 
     public static string NormalizeEmail(
         string email)

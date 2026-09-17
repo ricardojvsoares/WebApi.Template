@@ -15,7 +15,6 @@ services:
       PG_DATABASE: ${PG_DATABASE:-webapi}
       PG_USERNAME: ${PG_USERNAME:-postgres}
       PG_PASSWORD: ${PG_PASSWORD:-postgres}
-      PG_RUN_MIGRATIONS_ON_STARTUP: ${PG_RUN_MIGRATIONS_ON_STARTUP:-true}
       Jwt__SigningKey: ${Jwt__SigningKey:?set Jwt__SigningKey in .env}
       Jwt__Issuer: ${Jwt__Issuer:-webapi}
       Jwt__Audience: ${Jwt__Audience:-webapi}

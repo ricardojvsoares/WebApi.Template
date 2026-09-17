@@ -60,16 +60,19 @@ internal sealed class AdminUserSeeder(
 
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
         var trimmedEmail = email.Trim();
+        var adminId = Guid.NewGuid();
 
         var admin = new User
         {
-            Id = Guid.NewGuid(),
+            Id = adminId,
             Email = trimmedEmail,
             EmailNormalized = User.NormalizeEmail(trimmedEmail),
             PasswordHash = passwordHasher.Hash(password),
             DisplayName = "Administrator",
             IsActive = true,
+            CreatedBy = adminId,
             CreatedAtUtc = nowUtc,
+            UpdatedBy = adminId,
             UpdatedAtUtc = nowUtc
         };
 
