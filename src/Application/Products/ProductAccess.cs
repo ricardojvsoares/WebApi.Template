@@ -12,11 +12,6 @@ internal static class ProductAccess
     public static ErrorOr<Product> EnsureExists(
         Product? product)
     {
-        if (product is null)
-        {
-            return Error.NotFound(description: "The product was not found.");
-        }
-
-        return product;
+        return product ?? (ErrorOr<Product>)Error.NotFound(description: "The product was not found.");
     }
 }

@@ -58,7 +58,7 @@ public static class RefreshAccessTokenCommandHandler
                 stored.UserId,
                 cancellationToken);
 
-            if (user is null || !user.IsActive)
+            if (user?.IsActive is not true)
             {
                 return invalidToken;
             }
